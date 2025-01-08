@@ -9,6 +9,7 @@ library(tidygraph)
 library(ggraph)
 library(scales)
 library(ggwordcloud)
+library(fs)
 
 # --- CORE FUNCTIONS --- #
 # use these functions to initiate and see the results of the hierarchical PCA analysis
@@ -223,6 +224,62 @@ plot_wordcloud <- function(hpca, ngroups, max_size = 30) {
     return(out)
 }
 
+write_pcas <- function(hpca, out_path=NULL) {
+    #' Write PCA Loadings and Scores to CSV Files
+	#'
+	#' This function extracts PCA rotations and scores from the hierarchical PCA (HPCA) output and writes them 
+	#' to separate CSV files. The output includes a rotation file containing the PCA loadings for each item 
+	#' and a scores file with PCA scores for each subject.
+	#'
+    #' @param hpca list
+    #'   The output from the `HPCA` function, containing PCA results for individual subjects.
+    #' @param out_path character, optional
+    #'   Directory path to save the output files. Defaults to the working directory (`./`).
+    #'
+    #' @details
+    #' The function writes two files:
+    #' \itemize{
+    #'   \item \code{rotation.csv}: Contains the PCA loadings (rotations) for each item and subject.
+    #'   \item \code{scores.csv}: Contains the PCA scores for each subject and component.
+    #' }
+    #' The files are saved in the specified output directory. If the directory does not exist, the function 
+    #' raises an error.
+    #'
+    #' @return None. Writes files to the specified or default directory.
+    #'
+    #' @examples
+    #' # Assuming `hpca_result` is the output from the `HPCA` function:
+    #' write_pcas(hpca_result, out_path = "./results")
+    #' # Files `rotation.csv` and `scores.csv` will be saved in the "./results" directory.
+    #'
+    #' @note
+    #' Ensure the `out_path` exists before calling this function, as it will not create the directory.
+    #'
+    #' @throws
+    #' An error is raised if the provided output path does not exist.
+    #'
+    #' @seealso HPCA
+
+    # Convert to df
+    pcas <- hpca$pcas
+    rotation <- do.call(rbind, lapply(names(pcas), pca_to_df, pcas, 'rotation'))
+    rotation <- rotation[order(rotation$subject),]
+    scores <- do.call(rbind, lapply(names(pcas), pca_to_df, pcas, 'scores'))
+    scores <- scores[order(scores$subject),]
+    
+    # Write
+    if (!is.null(out_path)) {
+        if (!dir.exists(out_path)) stop('Supplied output path must exist')
+        out_path <- path(out_path)
+    } else {
+        out_path <- path('./')
+    }
+    
+    write.csv(rotation, path(out_path, 'rotation.csv'), row.names=FALSE)
+    write.csv(scores, path(out_path, 'scores.csv'), row.names=FALSE)
+    
+}
+
 
 # ~~ AUX FUNCTIONS ~~ #
 # (these functions shouldn't need to be called directly)
@@ -281,9 +338,12 @@ pca_subjects <- function(subd, Nfactors) {
     rownames(loadings) <- rownames(pca_result$loadings)
     colnames(loadings) <- paste0('PC', 1:(ncol(loadings)))
     eigens <- pca_result$Vaccounted['Proportion Explained',]
+    scores <- pca_result$scores
+    colnames(scores) <- paste0('PC', 1:(ncol(scores)))
     out <- list(
         'rotations' = loadings,
-        'eigens' = eigens
+        'eigens' = eigens,
+        'scores' = scores
     )
     return(out)
 }
@@ -359,6 +419,68 @@ custom_scale <- function(response, response_m, response_sd) {
     out <- ifelse(response_sd != 0 & !is.na(response_sd), scaled, response_m)
     return(out)
 }
+
+pca_to_df <- function(subject_str, pcas, type) {
+    # type must be 'rotation' or 'scores'
+    subject <- as.numeric(str_extract(subject_str, 'subject(\\d+)', group = 1))
+    pca <- pcas[[subject_str]]
+    name <- ifelse(type == 'rotation', 'item', 'trial')
+    if (type == 'rotation') {
+        append <- pca$rotations
+        rownames(append) <- 1:(nrow(append))
+        vec <- rownames(pca$rotations)
+    } else {
+        append <- pca$scores
+        vec <- 1:(nrow(pca$scores))
+    }
+    
+    out <- cbind(data.frame(subject=subject), append)
+    out[[name]] <- vec
+    out <- out[,c('subject', name, colnames(append))]
+    return(out)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

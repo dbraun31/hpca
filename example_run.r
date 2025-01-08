@@ -13,6 +13,11 @@ d <- read.csv('mweeg_es.csv')
 # Note, groups are not currently in order of similarity
 hpca <- HPCA(file='mweeg_es.csv', items=items)
 
+# Save subject-level PCA rotations and scores to file
+# Specify custom out_path if you want
+# path <- 'my/output_dir'
+write_pcas(hpca, out_path=NULL)
+
 # Determine ideal number of groups
 groups <- get_ideal_groups(hpca)
 

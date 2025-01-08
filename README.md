@@ -26,7 +26,7 @@ Clone this repository and ensure the required R packages are installed:
 install.packages(c(
   "tidyr", "purrr", "stringr", "dplyr", "ggplot2", 
   "cluster", "psych", "tidygraph", "ggraph", 
-  "scales", "ggwordcloud"
+  "scales", "ggwordcloud", "fs"
 ))
 ```
 
@@ -86,6 +86,17 @@ Generates a word cloud showing PCA loadings grouped by clusters.
     * `hpca`: Output from HPCA().
     * `ngroups`: Number of clusters.
     * `max_size`: Maximum text size in the word cloud (default: 30).
+
+`write_pcas(hpca, out_path=NULL)`
+
+Writes subject-level rotation matrices and trial-wise scores to two
+separate csv's.
+
+* Parameters:
+
+    * `hpca`: Output from HPCA().
+    * `out_path`: Directory path to save the output files. Defaults to the
+        working directory.
 
 ### Auxiliary Functions
 
